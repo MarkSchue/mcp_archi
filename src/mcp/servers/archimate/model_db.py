@@ -11,7 +11,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
-EXPORTS_DIR = Path("/home/markus/Workspace/mcp_test/exports")
+EXPORTS_DIR = Path("/home/markus/Workspace/mcp_archi/exports")
 DATA_DIR = Path(__file__).parent / "data"
 MODEL_DB_PATH = DATA_DIR / "archimate_models.sqlite"
 

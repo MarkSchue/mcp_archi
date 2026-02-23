@@ -1,11 +1,11 @@
 {
     "chat.mcp.serverSampling": {
-        "mcp_test/.vscode/mcp.json: export-csv": {
+        "mcp_archi/.vscode/mcp.json: export-csv": {
             "allowedModels": [
                 "copilot/gpt-5-mini"
             ]
         },
-        "mcp_test/.vscode/mcp.json: archimate": {
+        "mcp_archi/.vscode/mcp.json: archimate": {
             "allowedModels": [
                 "copilot/gpt-5-mini"
             ]

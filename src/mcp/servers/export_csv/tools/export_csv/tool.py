@@ -9,7 +9,7 @@ from mcp import types
 from ...server import mcp
 
 # Exports directory (fixed to workspace exports folder)
-EXPORTS_DIR = Path("/home/markus/Workspace/mcp_test/exports")
+EXPORTS_DIR = Path("/home/markus/Workspace/mcp_archi/exports")
 FNAME_RE = re.compile(r"^[\w\-. ]+\.csv$", flags=re.I)
 
 

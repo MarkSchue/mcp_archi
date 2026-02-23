@@ -21,7 +21,7 @@ from .model_db import init_model_db
 VIEW_URI = "ui://selectable-table/view.html"
 
 # exports directory (hard-coded for workspace path)
-EXPORTS_DIR = Path("/home/markus/Workspace/mcp_test/exports")
+EXPORTS_DIR = Path("/home/markus/Workspace/mcp_archi/exports")
 
 _current_selection: list = []
 
