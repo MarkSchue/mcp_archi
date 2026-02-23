@@ -1,0 +1,275 @@
+/* ===================================================================
+   VS Code–native base styles for MCP App views
+   Uses --vscode-* vars injected by VS Code, dark-mode fallbacks.
+   =================================================================== */
+
+/* --- Reset --------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--vscode-editor-background, #1e1e1e);
+  color: var(--vscode-editor-foreground, #cccccc);
+  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif);
+  font-size: var(--vscode-font-size, 13px);
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+
+body { padding: 12px; }
+
+/* --- Typography ---------------------------------------------------- */
+h1 { font-size: 1.4rem; font-weight: 600; margin: 0 0 12px; }
+h2 { font-size: 1.1rem; font-weight: 500; margin: 0 0 10px; }
+h3 { font-size: 0.95rem; font-weight: 500; margin: 0 0 8px; }
+p  { margin: 0 0 8px; }
+small, .text-secondary {
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+}
+
+/* --- Links --------------------------------------------------------- */
+a {
+  color: var(--vscode-textLink-foreground, #3794ff);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--vscode-textLink-activeForeground, #3794ff);
+  text-decoration: underline;
+}
+
+/* --- Scrollbar ----------------------------------------------------- */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--vscode-scrollbarSlider-background, rgba(121,121,121,0.4));
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--vscode-scrollbarSlider-hoverBackground, rgba(100,100,100,0.7));
+}
+
+/* --- Inputs -------------------------------------------------------- */
+input[type="text"],
+input[type="search"],
+input[type="number"],
+textarea,
+select {
+  background: var(--vscode-input-background, #3c3c3c);
+  border: 1px solid var(--vscode-input-border, #3c3c3c);
+  color: var(--vscode-input-foreground, #cccccc);
+  padding: 5px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+input[type="search"]::placeholder {
+  color: var(--vscode-input-placeholderForeground, #6e6e6e);
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--vscode-focusBorder, #007acc);
+}
+
+/* --- Buttons ------------------------------------------------------- */
+.btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  background: var(--vscode-button-secondaryBackground, #3a3d41);
+  color: var(--vscode-button-secondaryForeground, #cccccc);
+  transition: background 0.15s, opacity 0.15s;
+}
+.btn:hover {
+  background: var(--vscode-button-secondaryHoverBackground, #45494e);
+}
+.btn:disabled { opacity: 0.45; cursor: default; }
+
+.btn-primary {
+  background: var(--vscode-button-background, #0078d4);
+  color: var(--vscode-button-foreground, #ffffff);
+}
+.btn-primary:hover {
+  background: var(--vscode-button-hoverBackground, #1a8cff);
+}
+
+/* --- Checkbox ------------------------------------------------------ */
+input[type="checkbox"] {
+  accent-color: var(--vscode-focusBorder, #007acc);
+  width: 14px; height: 14px;
+  cursor: pointer;
+}
+
+/* --- Table --------------------------------------------------------- */
+.vsc-panel {
+  border: 1px solid var(--vscode-panel-border, var(--vscode-widget-border, #3c3c3c));
+  border-radius: 4px;
+  padding: 10px;
+  background: var(--vscode-editor-background, #1e1e1e);
+}
+
+.vsc-table-container {
+  border: 1px solid var(--vscode-panel-border, var(--vscode-widget-border, #3c3c3c));
+  border-radius: 4px;
+  overflow: auto;
+  max-height: none;
+  height: auto;
+}
+table.vsc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+table.vsc-table thead th {
+  background: var(--vscode-editorGroupHeader-tabsBackground, #252526);
+  position: sticky; top: 0;
+  z-index: 1;
+  padding: 6px 10px;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-widget-border, #3c3c3c));
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  color: var(--vscode-editor-foreground, #cccccc);
+}
+table.vsc-table thead th:hover {
+  background: var(--vscode-list-hoverBackground, #2a2d2e);
+}
+table.vsc-table tbody tr {
+  border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-widget-border, #3c3c3c));
+  cursor: pointer;
+  transition: background 0.1s;
+}
+table.vsc-table tbody tr:hover {
+  background: var(--vscode-list-hoverBackground, #2a2d2e);
+}
+table.vsc-table tbody tr.selected {
+  background: var(--vscode-list-activeSelectionBackground, #094771);
+  color: var(--vscode-list-activeSelectionForeground, #ffffff);
+}
+table.vsc-table tbody td {
+  padding: 5px 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+table.vsc-table .col-checkbox {
+  width: 36px;
+  text-align: center;
+}
+
+/* --- Toolbar ------------------------------------------------------- */
+.vsc-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.vsc-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vsc-toolbar-right {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vsc-col-panel {
+  position: relative;
+}
+
+.vsc-col-panel > summary {
+  list-style: none;
+}
+
+.vsc-col-panel > summary::-webkit-details-marker {
+  display: none;
+}
+
+.vsc-col-menu {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  min-width: 200px;
+  max-height: 220px;
+  overflow: auto;
+  z-index: 5;
+  padding: 8px;
+  border: 1px solid var(--vscode-panel-border, var(--vscode-widget-border, #3c3c3c));
+  border-radius: 4px;
+  background: var(--vscode-editorWidget-background, #252526);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.vsc-col-panel[open] .vsc-col-menu {
+  display: block;
+}
+
+.vsc-col-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+  font-size: 0.82rem;
+}
+
+table.vsc-table thead th.drag-over-col {
+  outline: 1px dashed var(--vscode-focusBorder, #007acc);
+  outline-offset: -2px;
+}
+
+table.vsc-table thead th.dragging-col {
+  opacity: 0.6;
+}
+
+/* --- Status / info line -------------------------------------------- */
+.vsc-status {
+  font-size: 0.8rem;
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+  margin-top: 8px;
+}
+
+/* --- Empty / placeholder ------------------------------------------- */
+.vsc-empty {
+  text-align: center;
+  padding: 30px;
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+}
+
+/* --- Sort arrow ---------------------------------------------------- */
+.sort-arrow {
+  margin-left: 3px;
+  font-size: 0.65rem;
+}
+
+.th-title {
+  vertical-align: middle;
+}
+
+.vsc-head-enhance {
+  margin-left: 4px;
+  display: inline-flex;
+  align-items: center;
+}
+.vsc-head-enhance input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+}
+
+.vsc-head-enhance input[type="checkbox"] {
+  width: 12px;
+  height: 12px;
+}

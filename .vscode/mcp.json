@@ -1,0 +1,22 @@
+{
+    "servers": {
+        "export-csv": {
+            "type": "stdio",
+            "command": "/home/markus/Workspace/mcp_test/.venv/bin/python",
+            "args": [
+                "-m",
+                "servers.export_csv"
+            ],
+            "cwd": "/home/markus/Workspace/mcp_test/src/mcp"
+        },
+        "archimate": {
+            "type": "stdio",
+            "command": "/home/markus/Workspace/mcp_test/.venv/bin/python",
+            "args": [
+                "-m",
+                "servers.archimate"
+            ],
+            "cwd": "/home/markus/Workspace/mcp_test/src/mcp"
+        }
+    }
+}

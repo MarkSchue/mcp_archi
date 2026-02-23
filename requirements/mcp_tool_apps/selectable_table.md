@@ -1,0 +1,5 @@
+# Overview
+I want to create an mcp-tool for my agents and skills. The input of this tool is a json-format with entities inside. The tool is an mcp app with MCP Elicitation giving back a table where entries inside the table can be selected. We use react as an framwork for the visualization part. The tool itself is a python tool registered as @mcp_tool.
+
+# Task
+Create a selectable table mcp-tool under src/mcp/tools/ for my agents and skills. The tool should take a json-format input with entities and display them in a table format. The entries in the table should be selectable, allowing users to interact with the data. Use React for the visualization part and ensure that the tool is registered as @mcp_tool in Python. The selected entries should be able to trigger further actions or provide additional information based on user interaction.
