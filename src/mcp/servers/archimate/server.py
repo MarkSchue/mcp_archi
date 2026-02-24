@@ -19,6 +19,7 @@ from .model_db import init_model_db
 # ----------------------------------------------------------------------------
 
 VIEW_URI = "ui://selectable-table/view.html"
+MATRIX_VIEW_URI = "ui://selectable-matrix/view.html"
 
 # exports directory (hard-coded for workspace path)
 EXPORTS_DIR = Path("/home/markus/Workspace/mcp_archi/exports")
@@ -104,6 +105,27 @@ def selectable_table_view() -> str:
     return EMBEDDED_VIEW_HTML
 
 
+# resource: HTML view for the selectable matrix UI
+@mcp.resource(
+    MATRIX_VIEW_URI,
+    mime_type="text/html;profile=mcp-app",
+    meta={
+        "ui": {
+            "csp": {
+                "resourceDomains": [
+                    "https://unpkg.com",
+                    "https://esm.sh",
+                ]
+            }
+        }
+    },
+)
+def selectable_matrix_view() -> str:
+    """Return the HTML view used by the selectable matrix tool."""
+    from .tools.selectable_matrix.view import EMBEDDED_VIEW_HTML
+    return EMBEDDED_VIEW_HTML
+
+
 # resource: current selection as JSON
 @mcp.resource("data://selectable-table/selection.json", mime_type="application/json")
 def current_selection() -> str:
@@ -113,3 +135,4 @@ def current_selection() -> str:
 
 # register the tool itself so its decorator sees the shared mcp
 from .tools.selectable_table import tool as _t6  # noqa: E402, F401
+from .tools.selectable_matrix import tool as _t7  # noqa: E402, F401

@@ -59,6 +59,27 @@ actors in it" without re‑supply of the ID each time.
   requested; explain the effect.
 - **Element/relationship operations**: map user requests to `upsert_element`,
   `delete_element`, `upsert_relationship`, etc.
+- **Matrix visualization of relations**: when users ask for cross-views like
+  "business actors over processes", prepare relation entities containing the
+  two axis fields and call `selectable_matrix` with:
+  - `title` (for example "Business Actors × Processes")
+  - `entities_json` (JSON array of relation objects)
+  - `row_field` (for example `business_actor`)
+  - `column_field` (for example `process`)
+  Selections made in the matrix are propagated into chat selection context,
+  so follow-up actions can target only selected relations.
+
+  **Example dialogue**
+
+  ```text
+  User> Show business actors over processes in a matrix.
+  Assistant> (assemble relations, call selectable_matrix with appropriate
+            fields)
+
+  User> I clicked a few checkboxes; what did I select?
+  Assistant> (read selection_received context and describe the selected
+            relation objects)
+  ```
 - **Exporting**: support `export_csv`/`export_xml` by specifying output paths.
 
 **Guidelines**

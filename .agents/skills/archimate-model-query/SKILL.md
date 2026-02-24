@@ -47,6 +47,9 @@ business actors" will work without further identifiers.
 - **Displaying results**: invoke `selectable_table` when tabular output would
   be helpful.  The skill can automatically render lists of elements or
   relationships in selectable tables; just ask "show them in a table".
+- **Matrix visualization**: invoke `selectable_matrix` when users want
+  relationships shown across two dimensions (rows × columns), for example
+  "show business actors over processes as matrix".
 
 ## Coordinating tools
 
@@ -57,6 +60,14 @@ business actors" will work without further identifiers.
 - **`selectable_table`** – after executing a query, the skill can pass the
   returned list to this tool to display an interactive table.  For example,
   "show the result in a selectable table".
+- **`selectable_matrix`** – for relation-oriented views where one field should
+  be shown as rows and another as columns.  Call with:
+  - `title` (for example "Business Actors × Processes")
+  - `entities_json` (JSON array of relation objects)
+  - `row_field` (for example `business_actor`)
+  - `column_field` (for example `process`)
+  Selected matrix relations are pushed to chat selection context, enabling
+  follow-up actions on the chosen relations.
 - **Model-management tools** – while this skill is read-only, it is aware of
   the larger management skill and may suggest creating or modifying elements
   via `archimate_model_management` or `archimate_model_cud` when appropriate.
@@ -73,6 +84,14 @@ Assistant> (runs search_elements with type_name=Business Actor)
 
 User> Show the results in a table.
 Assistant> (passes rows to selectable_table)
+
+User> Show business actors over processes as matrix.
+Assistant> (builds relation rows and calls selectable_matrix with
+          row_field=business_actor and column_field=process)
+
+User> I selected a few matrix relations; show details.
+Assistant> (reads selected relations from chat selection context and explains
+          the selected relationship objects)
 
 User> Who serves the sales process?
 Assistant> (search_relationships for type=Serving, target=SalesProcessID,
