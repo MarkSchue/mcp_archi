@@ -136,3 +136,4 @@ def current_selection() -> str:
 # register the tool itself so its decorator sees the shared mcp
 from .tools.selectable_table import tool as _t6  # noqa: E402, F401
 from .tools.selectable_matrix import tool as _t7  # noqa: E402, F401
+from .tools.drawio import tool as _t8  # noqa: E402, F401

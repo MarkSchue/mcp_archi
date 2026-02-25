@@ -1,0 +1,40 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36" version="29.5.2">
+  <diagram name="Business actors + processes + their relations" id="archi-diagram">
+    <mxGraphModel dx="1360" dy="759" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="n1" parent="1" style="html=1;whiteSpace=wrap;shape=mxgraph.archimate3.actor;appType=actor;archiType=square;" value="Erika Gruen" vertex="1">
+          <mxGeometry height="80" width="180" x="80" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="n2" parent="1" style="html=1;whiteSpace=wrap;shape=mxgraph.archimate3.actor;appType=actor;archiType=square;" value="Max Mustermann" vertex="1">
+          <mxGeometry height="80" width="180" x="330" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="n3" parent="1" style="html=1;whiteSpace=wrap;shape=mxgraph.archimate3.process;appType=proc;archiType=rounded;" value="procurement" vertex="1">
+          <mxGeometry height="80" width="180" x="540" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="n4" parent="1" style="html=1;whiteSpace=wrap;shape=mxgraph.archimate3.process;appType=proc;archiType=rounded;" value="engineering" vertex="1">
+          <mxGeometry height="80" width="180" x="770" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="n5" parent="1" style="html=1;whiteSpace=wrap;shape=mxgraph.archimate3.process;appType=proc;archiType=rounded;" value="sales" vertex="1">
+          <mxGeometry height="80" width="180" x="1000" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ro1" edge="1" parent="1" source="n1" style="html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;" target="n3" value="serves">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ro2" edge="1" parent="1" source="n2" style="html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;" target="n4" value="triggers">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ro3" edge="1" parent="1" source="n2" style="html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;" target="n5" value="serves">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ro4" edge="1" parent="1" source="n2" style="html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;" target="n5" value="triggers">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ro5" edge="1" parent="1" source="n2" style="html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;" target="n3" value="triggers">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

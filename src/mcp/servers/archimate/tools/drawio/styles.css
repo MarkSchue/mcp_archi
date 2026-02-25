@@ -1,0 +1,44 @@
+/*
+  Static stylesheet for ArchiMate draw.io exports.
+  Edit this file to keep your preferred visual theme versioned with the tool.
+*/
+
+:root {
+  --archimate-fill: #fff2cc;
+  --archimate-stroke: #d6b656;
+  --archimate-text: #1f2937;
+  --archimate-font: "Segoe UI", Arial, sans-serif;
+}
+
+.archimate-element {
+  fill: var(--archimate-fill);
+  stroke: var(--archimate-stroke);
+  color: var(--archimate-text);
+  font-family: var(--archimate-font);
+}
+
+.archimate-business-actor,
+.archimate-business-role,
+.archimate-business-collaboration,
+.archimate-business-process,
+.archimate-business-function,
+.archimate-business-service,
+.archimate-application-component,
+.archimate-application-service,
+.archimate-technology-service {
+  fill: var(--archimate-fill);
+  stroke: var(--archimate-stroke);
+}
+
+.archimate-motivation,
+.archimate-goal,
+.archimate-requirement,
+.archimate-principle,
+.archimate-assessment {
+  fill: #e1f5fe;
+  stroke: #4f81bd;
+}
+
+.archimate-relationship {
+  stroke: #374151;
+}
