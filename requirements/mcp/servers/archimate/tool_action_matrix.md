@@ -2,6 +2,14 @@
 
 Compact reference of ArchiMate MCP tools, actions/query types, and payload requirements.
 
+## Invocation Discipline (critical)
+
+- Use MCP tool calls over configured `stdio` transport.
+- Resolve `model_id` context first (`archimate_current_model`) before model-scoped actions.
+- Validate required payload fields before invocation.
+- Do not mix transport styles (MCP + ad-hoc HTTP + direct module imports) in one workflow.
+- For deterministic usage guidance, see `.github/agents/archimate architect.agent.md`.
+
 ## Conventions
 
 - Router-style tools use `action` + `payload_json`.

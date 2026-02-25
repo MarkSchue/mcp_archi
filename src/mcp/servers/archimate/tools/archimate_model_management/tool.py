@@ -37,7 +37,7 @@ from ...model_db import (
     upsert_model_relationship,
     validate_model,
 )
-from ...server import mcp
+from ...server import mcp, note_model_mutation
 
 
 @mcp.tool()
@@ -96,6 +96,7 @@ def archimate_model_management(action: str, payload_json: str = "{}") -> list[ty
             # remember as current model for conversational context
             from ...server import set_current_model
             set_current_model(result.get("id"))
+            note_model_mutation("archimate_model_management", action, str(result.get("id")))
             return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False))]
 
         if action == "list_models":
@@ -126,12 +127,14 @@ def archimate_model_management(action: str, payload_json: str = "{}") -> list[ty
                 author=str(payload.get("author", "system")),
                 message=str(payload.get("message", "Model updated")),
             )
+            note_model_mutation("archimate_model_management", action, str(payload["model_id"]))
             return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False))]
 
         if action == "delete_model":
             if not payload.get("model_id"):
                 return [types.TextContent(type="text", text="Error: missing required field 'model_id'")]
             deleted = delete_model(model_id=str(payload["model_id"]))
+            note_model_mutation("archimate_model_management", action, str(payload["model_id"]))
             return [types.TextContent(type="text", text=json.dumps({"status": "deleted", "count": deleted}, ensure_ascii=False))]
 
         if action == "define_attribute":
@@ -186,6 +189,7 @@ def archimate_model_management(action: str, payload_json: str = "{}") -> list[ty
                 author=str(payload.get("author", "system")),
                 message=str(payload.get("message", "Element upserted")),
             )
+            note_model_mutation("archimate_model_management", action, str(payload["model_id"]))
             return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False))]
 
         if action == "list_elements":
@@ -211,6 +215,7 @@ def archimate_model_management(action: str, payload_json: str = "{}") -> list[ty
                 author=str(payload.get("author", "system")),
                 message=str(payload.get("message", "Element deleted")),
             )
+            note_model_mutation("archimate_model_management", action, str(payload["model_id"]))
             return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False))]
 
         if action == "upsert_relationship":
@@ -231,6 +236,7 @@ def archimate_model_management(action: str, payload_json: str = "{}") -> list[ty
                 author=str(payload.get("author", "system")),
                 message=str(payload.get("message", "Relationship upserted")),
             )
+            note_model_mutation("archimate_model_management", action, str(payload["model_id"]))
             return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False))]
 
         if action == "list_relationships":
@@ -257,6 +263,7 @@ def archimate_model_management(action: str, payload_json: str = "{}") -> list[ty
                 author=str(payload.get("author", "system")),
                 message=str(payload.get("message", "Relationship deleted")),
             )
+            note_model_mutation("archimate_model_management", action, str(payload["model_id"]))
             return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False))]
 
         if action == "list_versions":
@@ -285,6 +292,7 @@ def archimate_model_management(action: str, payload_json: str = "{}") -> list[ty
                 expected_version=int(payload["expected_version"]) if payload.get("expected_version") is not None else None,
                 author=str(payload.get("author", "system")),
             )
+            note_model_mutation("archimate_model_management", action, str(payload["model_id"]))
             return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False))]
 
         if action == "validate_model":
@@ -339,6 +347,7 @@ def archimate_model_management(action: str, payload_json: str = "{}") -> list[ty
                 expected_version=int(payload["expected_version"]) if payload.get("expected_version") is not None else None,
                 author=str(payload.get("author", "system")),
             )
+            note_model_mutation("archimate_model_management", action, str(payload["model_id"]))
             return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False))]
 
         if action == "export_xml":
@@ -358,6 +367,7 @@ def archimate_model_management(action: str, payload_json: str = "{}") -> list[ty
                 expected_version=int(payload["expected_version"]) if payload.get("expected_version") is not None else None,
                 author=str(payload.get("author", "system")),
             )
+            note_model_mutation("archimate_model_management", action, str(payload["model_id"]))
             return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False))]
 
         if action == "acquire_lock":

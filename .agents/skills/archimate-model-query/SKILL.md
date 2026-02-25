@@ -10,6 +10,46 @@ tool for managing attribute vocabularies, and the selectable-table UI.  It allow
 "what serves the sales process?", or "show me the neighbors of element X"
 using plain language.  No Python snippets are required.
 
+## Deterministic query workflow (must follow)
+
+1. Resolve active model id via `archimate_current_model.get`
+2. If missing/ambiguous, call `archimate_current_model.find` or ask user once
+3. Build one valid `action` + `payload_json` for `archimate_model_query`
+4. Execute query tool once
+5. If needed, render result in `selectable_table` or `selectable_matrix`
+
+Do not mix query flows with ad-hoc terminal Python or HTTP calls.
+
+## Intent boundary (critical)
+
+For query requests, return query results only unless user explicitly asks for visualization/export.
+
+- Do not auto-run `drawio`, `export_csv`, or `export_xml`.
+- Do not auto-open `selectable_table`/`selectable_matrix` unless the user asks for table/matrix view.
+- Keep default output textual and concise.
+
+If user asks "find/list/show" without mentioning diagram/export/table/matrix, stay in query-only mode.
+
+## Transport rules
+
+- Use MCP tools over configured `stdio` transport only.
+- Do not call assumed HTTP endpoints for ArchiMate queries.
+- Do not import tool modules manually as a fallback for normal requests.
+
+## Action validation guardrail
+
+Before calling `archimate_model_query`, verify action is one of:
+
+- `db_info`
+- `search_elements`
+- `search_relationships`
+- `neighbors`
+- `path_exists`
+- `temporal_slice`
+- `model_stats`
+
+If user asks for "list elements" style language, map it to `search_elements`.
+
 ## Core capabilities
 
 - **search_elements** – filter elements by type, layer, aspect, attribute,
@@ -71,6 +111,13 @@ business actors" will work without further identifiers.
 - **Model-management tools** – while this skill is read-only, it is aware of
   the larger management skill and may suggest creating or modifying elements
   via `archimate_model_management` or `archimate_model_cud` when appropriate.
+
+## Recovery policy for common failures
+
+- `unknown action`: map to supported action names and retry with corrected action
+- `model not found`: re-resolve model via `list_models`/`find`, then retry
+- empty result: keep same tool path; refine filters (`type_name`, `search`, `valid_at`)
+- payload JSON error: regenerate payload; do not change transport
 
 **Note:** Because the skill handles payload construction internally, you can
 ask questions and the assistant will translate them into the appropriate

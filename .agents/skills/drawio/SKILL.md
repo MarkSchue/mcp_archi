@@ -40,18 +40,20 @@ Use this skill when the user asks to:
   render, or export a draw.io diagram.
 - Do not call `drawio` implicitly for standard model exploration, CRUD tasks,
   or selectable table/matrix workflows.
+- Do not call `drawio` as an automatic post-step after `create/update/delete`
+  operations unless the user explicitly asked for a diagram in the same request.
 
 ## Mandatory data-embedding behavior
 
 Every export MUST preserve shape/edge metadata in draw.io object format.
 
 - Element nodes MUST be emitted as `<object ...>` wrappers with:
-  - canonical wrapper form: `<object label="%label%" ...><mxCell .../></object>`
+  - canonical wrapper form: `<object label="%name%" ...><mxCell .../></object>`
   - `placeholders="1"`
   - flattened attributes using dot notation (e.g., `attributes.Owner="Alice"`)
   - `element_id`, `type_name`, `name`
 - Relationship edges MUST be emitted as `<object ...>` wrappers with:
-  - canonical wrapper form: `<object label="%label%" ...><mxCell .../></object>`
+  - canonical wrapper form: `<object label="%name%" ...><mxCell .../></object>`
   - `placeholders="1"`
   - flattened attributes using dot notation
   - `relationship_id`, `source_element_id`, `target_element_id`, `type_name`, `name`
@@ -62,7 +64,7 @@ Every export MUST preserve shape/edge metadata in draw.io object format.
 When acting as the coding agent, you must not stop at calling the tool. You must validate the generated file:
 
 1. Open the produced `.drawio` file.
-2. Verify it contains `<object` nodes in canonical form with `label="%label%"` (not only plain `<mxCell>` nodes for elements).
+2. Verify it contains `<object` nodes in canonical form with `label="%name%"` (not only plain `<mxCell>` nodes for elements).
 3. Verify at least one element object contains `element_id=` and flattened data attributes.
 4. Verify at least one relationship object contains `relationship_id=` and flattened data attributes.
 5. If checks fail, fix tool/code and re-export in the same session.
@@ -73,7 +75,7 @@ Do not report success without these checks.
 
 Call:
 
-- `drawio(entities_json, relationships_json="[]", title="ArchiMate Diagram")`
+- `drawio(entities_json, relationships_json="[]", title="ArchiMate Diagram", explicit_after_mutation=false)`
 
 Input expectations:
 
@@ -85,6 +87,9 @@ Input expectations:
   - `source_element_id` or `source_id` or `source`
   - `target_element_id` or `target_id` or `target`
   - `type_name` or `type`
+- `explicit_after_mutation` (optional bool, default `false`):
+  - required to be `true` when calling drawio immediately after a write action
+    (`create/update/delete/import/revert`) and the user explicitly asked for export.
 
 Output payload includes:
 
@@ -95,6 +100,13 @@ Output payload includes:
 - `stylesheet`
 - `file` (path to exported `.drawio` file in the workspace `output/` directory, when writing succeeds)
 - `stylesheet_file` (path to the static editable CSS file in `src/mcp/servers/archimate/tools/drawio/styles.css`)
+
+## Runtime guardrail
+
+- The server blocks drawio calls shortly after model mutations unless
+  `explicit_after_mutation=true`.
+- This prevents accidental diagram exports as unintended side effects of
+  update/delete workflows.
 
 ## Conversational pattern
 

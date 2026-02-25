@@ -10,7 +10,7 @@ from typing import Any
 
 from mcp import types
 
-from ...server import mcp
+from ...server import clear_recent_model_mutation, get_recent_model_mutation, mcp
 
 
 STATIC_STYLESHEET_FILENAME = "styles.css"
@@ -300,10 +300,10 @@ def _generate_drawio_xml(title: str, entities: list[dict[str, Any]], relationshi
 
         object_attrs = {
             "id": node_id,
-            "label": "%label%",
+            "label": "%name%",
+            "placeholders": "1",
         }
         data_attrs = _entity_data_attributes(entity)
-        object_attrs["placeholders"] = "1"
         object_attrs.update(data_attrs)
 
         object_node = ET.SubElement(root, "object", **object_attrs)
@@ -323,20 +323,18 @@ def _generate_drawio_xml(title: str, entities: list[dict[str, Any]], relationshi
             continue
         relation_label = relation.get("name") or relation["type_name"]
         edge_id = f"r{index + 1}"
-        edge_object_id = f"ro{index + 1}"
         edge_attrs = {
-            "id": edge_object_id,
-            "label": "%label%",
+            "id": edge_id,
+            "label": "%name%",
+            "placeholders": "1",
         }
         edge_data_attrs = _relationship_data_attributes(relation)
-        edge_attrs["placeholders"] = "1"
         edge_attrs.update(edge_data_attrs)
 
         edge_object = ET.SubElement(root, "object", **edge_attrs)
         edge_cell = ET.SubElement(
             edge_object,
             "mxCell",
-            id=edge_id,
             style=_edge_style(relation["type_name"]),
             edge="1",
             parent="1",
@@ -357,6 +355,81 @@ def _count_object_nodes(drawio_xml: str) -> int:
     return len(root.findall(".//object"))
 
 
+def _validate_object_only_wrappers(drawio_xml: str) -> tuple[bool, str | None]:
+    try:
+        mxfile = ET.fromstring(drawio_xml)
+    except ET.ParseError as exc:
+        return False, f"draw.io XML parse failed: {exc}"
+
+    disallowed = mxfile.findall(".//UserObject")
+    if disallowed:
+        return False, "draw.io wrapper validation failed: found disallowed <UserObject> nodes; only <object> is allowed."
+
+    root = mxfile.find("./diagram/mxGraphModel/root")
+    if root is None:
+        return False, "draw.io wrapper validation failed: XML missing /diagram/mxGraphModel/root."
+
+    invalid_children = [child.tag for child in root if child.tag not in {"mxCell", "object"}]
+    if invalid_children:
+        unique_invalid = sorted(set(invalid_children))
+        return (
+            False,
+            "draw.io wrapper validation failed: root contains disallowed wrapper tag(s): "
+            + ", ".join(unique_invalid)
+            + "; only <object> and <mxCell> are allowed.",
+        )
+
+    return True, None
+
+
+def _validate_no_duplicate_ids(drawio_xml: str) -> tuple[bool, str | None]:
+    """Fail if any two elements in the XML share the same id attribute."""
+    try:
+        mxfile = ET.fromstring(drawio_xml)
+    except ET.ParseError as exc:
+        return False, f"draw.io XML parse failed: {exc}"
+
+    seen: dict[str, str] = {}  # id -> tag
+    for elem in mxfile.iter():
+        elem_id = elem.get("id")
+        if elem_id is None:
+            continue
+        if elem_id in seen:
+            return (
+                False,
+                f"draw.io duplicate ID validation failed: id='{elem_id}' used by both <{seen[elem_id]}> and <{elem.tag}>.",
+            )
+        seen[elem_id] = elem.tag
+
+    return True, None
+
+
+def _validate_object_mxcell_structure(drawio_xml: str) -> tuple[bool, str | None]:
+    """Fail if an <object> wrapper's child <mxCell> carries id or value attributes."""
+    try:
+        mxfile = ET.fromstring(drawio_xml)
+    except ET.ParseError as exc:
+        return False, f"draw.io XML parse failed: {exc}"
+
+    for obj in mxfile.findall(".//object"):
+        obj_id = obj.get("id", "?")
+        for cell in obj.findall("mxCell"):
+            if cell.get("id") is not None:
+                return (
+                    False,
+                    f"draw.io structure validation failed: <mxCell> inside <object id='{obj_id}'> "
+                    "must not have its own 'id' attribute; the id belongs on the <object> wrapper.",
+                )
+            if cell.get("value") is not None:
+                return (
+                    False,
+                    f"draw.io structure validation failed: <mxCell> inside <object id='{obj_id}'> "
+                    "must not have a 'value' attribute; the label belongs on the <object> wrapper.",
+                )
+
+    return True, None
+
+
 def _resolve_output_dir() -> Path:
     # `tool.py` is at .../src/mcp/servers/archimate/tools/drawio/tool.py
     # workspace root is 6 levels above this file.
@@ -369,6 +442,7 @@ def drawio(
     entities_json: str,
     relationships_json: str = "[]",
     title: str = "ArchiMate Diagram",
+    explicit_after_mutation: bool = False,
 ) -> list[types.TextContent]:
     """Generate draw.io XML from ArchiMate entities and relationships.
 
@@ -376,7 +450,27 @@ def drawio(
         entities_json: JSON array of entities. Expected keys per entity: id/element_id, type_name/type, name.
         relationships_json: JSON array of relationships. Expected keys: source_element_id/source_id, target_element_id/target_id, type_name/type.
         title: Draw.io diagram tab title.
+        explicit_after_mutation: Must be True when exporting immediately after a write action.
     """
+    recent_mutation = get_recent_model_mutation(max_age_seconds=120)
+    if recent_mutation and not explicit_after_mutation:
+        return [
+            types.TextContent(
+                type="text",
+                text=json.dumps(
+                    {
+                        "error": "drawio_guardrail_blocked",
+                        "message": (
+                            "Draw.io export is blocked right after a model write to prevent unintended side effects. "
+                            "If the user explicitly requested this export, call drawio again with explicit_after_mutation=true."
+                        ),
+                        "recent_mutation": recent_mutation,
+                    },
+                    ensure_ascii=False,
+                ),
+            )
+        ]
+
     try:
         entities_raw = json.loads(entities_json)
     except json.JSONDecodeError as exc:
@@ -400,8 +494,20 @@ def drawio(
     normalized_entities = _normalize_entities(entities)
     normalized_relationships = _normalize_relationships(relationships)
     drawio_xml = _generate_drawio_xml(title=title, entities=normalized_entities, relationships=normalized_relationships)
+    wrappers_valid, wrapper_error = _validate_object_only_wrappers(drawio_xml)
+    if not wrappers_valid:
+        return [types.TextContent(type="text", text=f"Error: {wrapper_error}")]
+
+    ids_valid, id_error = _validate_no_duplicate_ids(drawio_xml)
+    if not ids_valid:
+        return [types.TextContent(type="text", text=f"Error: {id_error}")]
+
+    structure_valid, structure_error = _validate_object_mxcell_structure(drawio_xml)
+    if not structure_valid:
+        return [types.TextContent(type="text", text=f"Error: {structure_error}")]
+
     object_count = _count_object_nodes(drawio_xml)
-    minimum_expected_objects = len(normalized_entities)
+    minimum_expected_objects = len(normalized_entities) + len(normalized_relationships)
     if object_count < minimum_expected_objects:
         return [
             types.TextContent(
@@ -444,5 +550,8 @@ def drawio(
         payload["file"] = filepath
 
     payload["stylesheet_file"] = os.path.join(os.path.dirname(__file__), STATIC_STYLESHEET_FILENAME)
+
+    if explicit_after_mutation:
+        clear_recent_model_mutation()
 
     return [types.TextContent(type="text", text=json.dumps(payload, ensure_ascii=False))]

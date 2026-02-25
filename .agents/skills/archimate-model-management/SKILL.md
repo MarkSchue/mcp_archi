@@ -8,6 +8,66 @@ This skill encapsulates the workflows around the `archimate_model_management`
 MCP tool. It also cooperates with a companion `archimate_current_model` tool
 which can remember a "current" model id for the duration of a conversation.
 
+## Canonical execution path (must follow)
+
+Use only MCP tool calls in this order:
+
+1. Resolve model context (`archimate_current_model.get` / `find` / `set`)
+2. Validate required fields for the target action
+3. Call one ArchiMate tool (`archimate_model_management`, `archimate_model_query`, `archimate_model_cud`, or `archimate_attribute_dictionary`)
+4. Parse `TextContent[0].text` as JSON when possible
+5. Report result and next safe action
+
+Do **not** switch transport or runtime mid-flow.
+
+## Intent boundary and tool-chaining policy
+
+Default behavior is single-intent execution:
+
+- Perform only the tool action needed to satisfy the user request.
+- Do not trigger secondary workflows unless explicitly requested.
+
+Examples:
+
+- "update element" → run update + optional verification query; do not export.
+- "list models" → list only; do not open matrix/table automatically.
+- "validate model" → validate only; do not generate report unless asked.
+
+Disallowed implicit side effects:
+
+- draw.io export
+- CSV/XML export
+- matrix/table visualization
+- insights/report generation
+
+Allowed implicit follow-up: minimal read-back verification for write operations.
+
+## Transport and runtime rules
+
+- Server transport is MCP over `stdio` (configured in `.vscode/mcp.json`).
+- Use MCP tools directly; do not invent or assume HTTP endpoints.
+- Do not run ad-hoc Python import scripts as a primary path for normal user requests.
+- Keep one consistent execution context per request; avoid "tool call + curl + direct sqlite + python snippet" mixing.
+
+## Preflight checks before any write action
+
+Before calling any create/update/delete action, verify:
+
+- `model_id` is resolved and exists
+- required payload fields for the action are present
+- ids referenced by relationships (source/target) exist
+- if request is name-based, resolve names to IDs via query first
+- if versioning is used, pass `expected_version`
+
+If any check fails, fix the payload first instead of trying alternative transports.
+
+## Error handling policy
+
+- If tool returns `Error: ...`, keep the same MCP path and correct the payload/action.
+- Never fall back to HTTP or ad-hoc module imports to "force" execution.
+- When model lookup fails, call `list_models` or `archimate_current_model.find` and retry with the returned id.
+- When action is unknown, map user intent to the action matrix and retry once with corrected action name.
+
 When invoked the assistant should:
 
 1. Determine the user's intent (create a model, list models, import from XML
@@ -94,6 +154,13 @@ actors in it" without re‑supply of the ID each time.
   final message.
 - For error cases, surface the tool's error message verbatim so the user can
   act on it.
+
+## Anti-patterns (explicitly avoid)
+
+- Calling `curl http://localhost...` for ArchiMate tools
+- Running `python -m mcp.servers.archimate` when workspace config uses `python -m servers.archimate` from `src/mcp`
+- Using relative-import hacks to execute tool modules directly
+- Continuing with stale `model_id` after `Model not found` error
 
 This skill is primarily used in the context of the MCP workspace and the
 `archimate` server; it should not try to implement its own data persistence or

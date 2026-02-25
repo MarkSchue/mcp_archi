@@ -9,7 +9,9 @@ this server.
 from mcp.server.fastmcp import FastMCP
 
 import json
+import time
 from pathlib import Path
+from typing import Any
 
 from .db import init_db
 from .model_db import init_model_db
@@ -28,6 +30,7 @@ _current_selection: list = []
 
 # optional "current model" context used by conversational tools/skills
 CURRENT_MODEL: str | None = None
+LAST_MODEL_MUTATION: dict[str, Any] | None = None
 
 # ---------------------------------------------------------------------------
 # selection helpers (for selectable_table)
@@ -53,6 +56,35 @@ def set_current_model(model_id: str) -> None:
 def get_current_model() -> str | None:
     """Return the currently remembered model id, or None if none set."""
     return CURRENT_MODEL
+
+
+def note_model_mutation(tool: str, action: str, model_id: str | None = None) -> None:
+    """Record the latest model mutation to support runtime guardrails."""
+    global LAST_MODEL_MUTATION
+    LAST_MODEL_MUTATION = {
+        "tool": tool,
+        "action": action,
+        "model_id": model_id,
+        "at_monotonic": time.monotonic(),
+    }
+
+
+def get_recent_model_mutation(max_age_seconds: int = 90) -> dict[str, Any] | None:
+    """Return recent mutation metadata if it happened within max_age_seconds."""
+    if not LAST_MODEL_MUTATION:
+        return None
+    age = time.monotonic() - float(LAST_MODEL_MUTATION.get("at_monotonic", 0.0))
+    if age > max_age_seconds:
+        return None
+    result = dict(LAST_MODEL_MUTATION)
+    result["age_seconds"] = round(age, 3)
+    return result
+
+
+def clear_recent_model_mutation() -> None:
+    """Clear mutation metadata, typically after an explicitly requested post-write diagram export."""
+    global LAST_MODEL_MUTATION
+    LAST_MODEL_MUTATION = None
 
 
 # ---------------------------------------------------------------------------

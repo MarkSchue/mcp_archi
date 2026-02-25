@@ -16,7 +16,7 @@ from ...model_db import (
     upsert_model_element,
     upsert_model_relationship,
 )
-from ...server import mcp
+from ...server import mcp, note_model_mutation
 
 
 @mcp.tool()
@@ -78,6 +78,7 @@ def archimate_model_cud(action: str, payload_json: str = "{}") -> list[types.Tex
                 author=str(payload.get("author", "system")),
                 message=str(payload.get("message", "Element upserted")),
             )
+            note_model_mutation("archimate_model_cud", action, str(payload["model_id"]))
             return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False))]
 
         if action == "delete_element":
@@ -91,6 +92,7 @@ def archimate_model_cud(action: str, payload_json: str = "{}") -> list[types.Tex
                 author=str(payload.get("author", "system")),
                 message=str(payload.get("message", "Element deleted")),
             )
+            note_model_mutation("archimate_model_cud", action, str(payload["model_id"]))
             return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False))]
 
         if action in {"create_relationship", "update_relationship"}:
@@ -114,6 +116,7 @@ def archimate_model_cud(action: str, payload_json: str = "{}") -> list[types.Tex
                 author=str(payload.get("author", "system")),
                 message=str(payload.get("message", "Relationship upserted")),
             )
+            note_model_mutation("archimate_model_cud", action, str(payload["model_id"]))
             return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False))]
 
         if action == "delete_relationship":
@@ -127,6 +130,7 @@ def archimate_model_cud(action: str, payload_json: str = "{}") -> list[types.Tex
                 author=str(payload.get("author", "system")),
                 message=str(payload.get("message", "Relationship deleted")),
             )
+            note_model_mutation("archimate_model_cud", action, str(payload["model_id"]))
             return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False))]
 
         allowed = [

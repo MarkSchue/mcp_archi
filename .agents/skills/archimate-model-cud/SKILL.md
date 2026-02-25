@@ -10,6 +10,43 @@ relationships. It is designed to work together with the `archimate_current_model
 tool (for remembering which model is in focus) and the broader
 `archimate_model_management` skill for model-wide operations.
 
+## Canonical write workflow (must follow)
+
+1. Resolve model context (`archimate_current_model.get` or `find` + `set`)
+2. Resolve IDs via `archimate_model_query` if user input is name-based
+3. Validate required fields for selected CUD action
+4. Execute one `archimate_model_cud` action with valid JSON payload
+5. Verify outcome with a read query (`search_elements` / `search_relationships`)
+
+Keep all steps in MCP tool calls; do not switch to HTTP or ad-hoc Python execution.
+
+## Intent boundary (critical)
+
+For CUD requests, execute only CUD + optional read verification.
+
+- Allowed implicit follow-up: one read verification query to confirm the write.
+- Forbidden implicit follow-ups: `drawio`, `export_csv`, `export_xml`, `selectable_table`, `selectable_matrix`, report/insight generation.
+- Run export/diagram/table actions only if the user explicitly asks for them in the same turn.
+
+If the user says "update element X", do exactly that and stop after confirmation.
+
+## Required field checklist
+
+- `create_element`: `model_id`, `type_name`, `name`
+- `update_element`: `model_id`, `element_id`, `type_name`, `name`
+- `delete_element`: `model_id`, `element_id`
+- `create_relationship`: `model_id`, `type_name`, `source_element_id`, `target_element_id`
+- `update_relationship`: `model_id`, `relationship_id`, `type_name`, `source_element_id`, `target_element_id`
+- `delete_relationship`: `model_id`, `relationship_id`
+
+If any required field is missing, request/resolve it before executing.
+
+## Transport rules
+
+- Use MCP tool invocation only (configured `stdio` server).
+- Do not call local HTTP endpoints for CUD operations.
+- Do not use direct module-import hacks to invoke tools.
+
 ## Actions
 
 - **db_info** – return database file locations.
@@ -50,6 +87,12 @@ specified.
   (e.g. you can’t create a relationship without both source and target IDs).
 - When deleting, the assistant will usually confirm to prevent accidental
   removals.
+
+## Common failure recovery
+
+- `Model '<id>' not found`: run model lookup (`list_models` / `find`), then retry with valid id
+- `missing required field`: resolve ID/name mismatch via query tool and retry
+- `unknown action`: remap to canonical action or alias and retry once
 
 ## Integration
 
