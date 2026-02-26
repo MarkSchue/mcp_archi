@@ -25,12 +25,13 @@ def _row_dicts(cursor) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for row in cursor.fetchall():
         data = dict(zip(cols, row))
-        if "attributes_json" in data and isinstance(data["attributes_json"], str):
-            try:
-                data["attributes"] = json.loads(data["attributes_json"])
-            except json.JSONDecodeError:
-                data["attributes"] = {}
-            del data["attributes_json"]
+        for json_key in ("attributes_json", "tags_json"):
+            if json_key in data and isinstance(data[json_key], str):
+                try:
+                    data[json_key.replace("_json", "")] = json.loads(data[json_key])
+                except json.JSONDecodeError:
+                    data[json_key.replace("_json", "")] = {}
+                del data[json_key]
         rows.append(data)
     return rows
 
@@ -42,6 +43,8 @@ def _search_elements(
     aspect: str | None,
     attribute_key: str | None,
     attribute_value: str | None,
+    tag_key: str | None,
+    tag_value: str | None,
     search: str | None,
     valid_at: str | None,
     limit: int,
@@ -86,6 +89,12 @@ def _search_elements(
             if attribute_value is not None:
                 sql += " AND lower(CAST(json_extract(me.attributes_json, ?) AS TEXT)) = lower(?)"
                 params.extend([f"$.{attribute_key}", str(attribute_value)])
+        if tag_key:
+            sql += " AND json_extract(me.tags_json, ?) IS NOT NULL"
+            params.append(f"$.{tag_key}")
+            if tag_value is not None:
+                sql += " AND lower(CAST(json_extract(me.tags_json, ?) AS TEXT)) = lower(?)"
+                params.extend([f"$.{tag_key}", str(tag_value)])
 
         sql += " ORDER BY me.id LIMIT ?"
         params.append(limit)
@@ -257,7 +266,8 @@ def archimate_model_query(action: str, payload_json: str = "{}") -> list[types.T
 
     Actions:
             - db_info: return metamodel/model SQLite locations
-      - search_elements: filter by type/layer/aspect/attribute/time/text
+      - search_elements: filter by type/layer/aspect/attribute/tag/time/text
+        - tag_key / tag_value: filter elements by tags_json content
       - search_relationships: filter by type/category/source/target/time
       - neighbors: get adjacent nodes and connecting relationships
       - path_exists: check if directed path exists (BFS)
@@ -325,6 +335,8 @@ def archimate_model_query(action: str, payload_json: str = "{}") -> list[types.T
                 aspect=str(payload.get("aspect")) if payload.get("aspect") is not None else None,
                 attribute_key=attr_key,
                 attribute_value=str(payload.get("attribute_value")) if payload.get("attribute_value") is not None else None,
+                tag_key=str(payload.get("tag_key")) if payload.get("tag_key") is not None else None,
+                tag_value=str(payload.get("tag_value")) if payload.get("tag_value") is not None else None,
                 search=str(payload.get("search")) if payload.get("search") is not None else None,
                 valid_at=str(payload.get("valid_at")) if payload.get("valid_at") is not None else None,
                 limit=max(1, min(int(payload.get("limit", 200)), 1000)),
@@ -380,6 +392,8 @@ def archimate_model_query(action: str, payload_json: str = "{}") -> list[types.T
                 aspect=None,
                 attribute_key=None,
                 attribute_value=None,
+                tag_key=None,
+                tag_value=None,
                 search=None,
                 valid_at=valid_at,
                 limit=max(1, min(int(payload.get("element_limit", 1000)), 2000)),

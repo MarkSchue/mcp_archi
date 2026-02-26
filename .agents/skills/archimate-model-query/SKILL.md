@@ -53,7 +53,10 @@ If user asks for "list elements" style language, map it to `search_elements`.
 ## Core capabilities
 
 - **search_elements** – filter elements by type, layer, aspect, attribute,
-  text search or validity date.  Commonly used to list all actors/services/etc.
+  text search, tag or validity date.  Commonly used to list all actors/services/etc.
+  - Use `tag_key` (and optionally `tag_value`) to filter by tags stored in
+    the element's `tags_json` column.  Tags must be pre-defined via
+    `archimate_attribute_dictionary` with `is_tag=true`.
 - **search_relationships** – find relationships (with optional type,
   category, source/target filters) and return their metadata.
 - **neighbors** – given an element ID, fetch adjacent elements and connecting
@@ -79,6 +82,8 @@ business actors" will work without further identifiers.
   "Show me all relationships of type Serving".
 - **Natural filters**: "Give me the elements in the Business layer",
   "Anything valid on 2026-03-01?", "Relationships where the source is Alice".
+- **Tag queries**: "Show all elements tagged priority=high",
+  "Find elements that have a 'status' tag", "Which actors are tagged as critical?"
 - **Existence questions**: "Does a path exist from actor A to process B?"
 - **Neighbor queries**: "What neighbors does the sales process have?"
 - **Combined with current model**: "In the Testmodel, who serves the sales
@@ -149,6 +154,12 @@ Assistant> (path_exists query)
 
 User> What neighbors does that element have?
 Assistant> (neighbors query)
+
+User> Find all elements tagged priority=high.
+Assistant> (search_elements with tag_key=priority, tag_value=high)
+
+User> Which elements have a status tag at all?
+Assistant> (search_elements with tag_key=status, no tag_value)
 ```
 
 The goal of this skill is to make model exploration as easy as chatting with a

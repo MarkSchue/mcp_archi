@@ -11,8 +11,12 @@ from ...db import DB_PATH as METAMODEL_DB_PATH
 from ...model_db import (
     MODEL_DB_PATH,
     ModelError,
+    add_element_tag,
+    add_relationship_tag,
     delete_model_element,
     delete_model_relationship,
+    remove_element_tag,
+    remove_relationship_tag,
     upsert_model_element,
     upsert_model_relationship,
 )
@@ -29,6 +33,11 @@ def archimate_model_cud(action: str, payload_json: str = "{}") -> list[types.Tex
         - create_el/update_el/delete_el (short aliases)
       - create_relationship/update_relationship/delete_relationship (full names)
       - create_rel/update_rel/delete_rel (short aliases)
+      - add_tag: {model_id, key, value?, element_id? | relationship_id?}
+      - remove_tag: {model_id, key, element_id? | relationship_id?}
+
+    Tag actions require the key to be defined with is_tag=true in the
+    archimate_attribute_dictionary before use.
     """
     action = (action or "").strip().lower()
     action_aliases = {
@@ -133,6 +142,81 @@ def archimate_model_cud(action: str, payload_json: str = "{}") -> list[types.Tex
             note_model_mutation("archimate_model_cud", action, str(payload["model_id"]))
             return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False))]
 
+        if action == "add_tag":
+            if not payload.get("model_id"):
+                return [types.TextContent(type="text", text="Error: missing required field 'model_id'")]
+            if not payload.get("key"):
+                return [types.TextContent(type="text", text="Error: missing required field 'key'")]
+            has_element = bool(payload.get("element_id"))
+            has_relationship = bool(payload.get("relationship_id"))
+            if not has_element and not has_relationship:
+                return [types.TextContent(type="text", text="Error: add_tag requires 'element_id' or 'relationship_id'")]
+            if has_element and has_relationship:
+                return [types.TextContent(type="text", text="Error: add_tag accepts either 'element_id' or 'relationship_id', not both")]
+
+            model_id = str(payload["model_id"])
+            key = str(payload["key"])
+            value = str(payload.get("value", ""))
+            author = str(payload.get("author", "system"))
+            message = str(payload.get("message", "Tag added"))
+
+            if has_element:
+                result = add_element_tag(
+                    model_id=model_id,
+                    element_id=str(payload["element_id"]),
+                    key=key,
+                    value=value,
+                    author=author,
+                    message=message,
+                )
+            else:
+                result = add_relationship_tag(
+                    model_id=model_id,
+                    relationship_id=str(payload["relationship_id"]),
+                    key=key,
+                    value=value,
+                    author=author,
+                    message=message,
+                )
+            note_model_mutation("archimate_model_cud", action, model_id)
+            return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False))]
+
+        if action == "remove_tag":
+            if not payload.get("model_id"):
+                return [types.TextContent(type="text", text="Error: missing required field 'model_id'")]
+            if not payload.get("key"):
+                return [types.TextContent(type="text", text="Error: missing required field 'key'")]
+            has_element = bool(payload.get("element_id"))
+            has_relationship = bool(payload.get("relationship_id"))
+            if not has_element and not has_relationship:
+                return [types.TextContent(type="text", text="Error: remove_tag requires 'element_id' or 'relationship_id'")]
+            if has_element and has_relationship:
+                return [types.TextContent(type="text", text="Error: remove_tag accepts either 'element_id' or 'relationship_id', not both")]
+
+            model_id = str(payload["model_id"])
+            key = str(payload["key"])
+            author = str(payload.get("author", "system"))
+            message = str(payload.get("message", "Tag removed"))
+
+            if has_element:
+                result = remove_element_tag(
+                    model_id=model_id,
+                    element_id=str(payload["element_id"]),
+                    key=key,
+                    author=author,
+                    message=message,
+                )
+            else:
+                result = remove_relationship_tag(
+                    model_id=model_id,
+                    relationship_id=str(payload["relationship_id"]),
+                    key=key,
+                    author=author,
+                    message=message,
+                )
+            note_model_mutation("archimate_model_cud", action, model_id)
+            return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False))]
+
         allowed = [
             "db_info",
             "create_element",
@@ -147,6 +231,8 @@ def archimate_model_cud(action: str, payload_json: str = "{}") -> list[types.Tex
             "create_rel",
             "update_rel",
             "delete_rel",
+            "add_tag",
+            "remove_tag",
         ]
         return [types.TextContent(type="text", text=f"Error: unknown action '{action}'. Allowed: {', '.join(allowed)}")]
     except ModelError as exc:

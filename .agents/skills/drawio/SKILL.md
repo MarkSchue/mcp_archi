@@ -20,7 +20,8 @@ be opened directly in diagrams.net or used by downstream tooling.
 - Apply all attributes of entities and relationships as custom data attributes on the
   corresponding XML elements, ensuring that no information is lost in the
   transformation.
-- Flatten json-serializable nested structures into string attributes using **dot notation** (e.g., `attributes.Department=R&D`), so that complex properties are preserved in the diagram metadata and shape data.
+- Flatten json-serializable nested structures into string attributes using **dot notation** (e.g., `attributes.Department=R&D`), so that complex properties are preserved in the diagram metadata and shape data.  
+- Special-case `tags`/`tags_json`: export all tag values as a single space-separated `tags` attribute (spaces within values are replaced by dots) to make tag searches easy in diagrams.net.
 - Return XML plus stylesheet metadata for traceability and customization.
 - Support mixed relationship types (for example `Serving`, `Triggering`,
   `Composition`, `Access`) with suitable edge styles.

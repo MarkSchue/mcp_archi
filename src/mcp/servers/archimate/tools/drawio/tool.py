@@ -1,4 +1,15 @@
-"""Tool: drawio – Generate draw.io XML for ArchiMate entities and relationships."""
+"""Tool: drawio – Generate draw.io XML for ArchiMate entities and relationships.
+
+The exported XML embeds element/relationship metadata as attributes on
+`<object>` wrappers.  In addition to flattening arbitrary attributes using
+`dot notation`, the tool specially handles the `tags`/`tags_json` dictionary
+by emitting a space‑separated `tags` attribute whose tokens are the tag
+*keys* (spaces in keys are converted to dots) for easy searching in
+diagrams.net.  For example `{"critical": "yes", "priority": "yes"}` produces
+`tags="critical priority"`.  All structural
+validation rules (wrapper form, unique ids, mxCell restrictions) are enforced
+before writing the file.
+"""
 
 from __future__ import annotations
 
@@ -161,6 +172,7 @@ def _entity_data_attributes(entity: dict[str, Any]) -> dict[str, str]:
     used_keys: set[str] = set()
     reserved_keys = {"id", "label", "placeholder", "placeholders"}
 
+    # flatten all raw data first (attributes, tags_json, etc.)
     if isinstance(raw, dict):
         for original_key, original_value in raw.items():
             key_base = _sanitize_data_key(str(original_key))
@@ -169,6 +181,23 @@ def _entity_data_attributes(entity: dict[str, Any]) -> dict[str, str]:
             if key_base in reserved_keys:
                 key_base = f"data_{key_base}"
             _flatten_data(key_base, original_value, data_attrs, used_keys)
+
+    # special-case tags: combine keys into single space-separated string
+    # per AC-DIO-04: {"critical": "yes", "priority": "yes"} → tags="critical priority"
+    tags_val = None
+    if isinstance(raw, dict):
+        if "tags" in raw and isinstance(raw["tags"], dict):
+            tags_val = list(raw["tags"].keys())
+        elif "tags_json" in raw and isinstance(raw["tags_json"], dict):
+            tags_val = list(raw["tags_json"].keys())
+    if tags_val:
+        processed = [str(k).replace(" ", ".") for k in tags_val if k is not None]
+        if processed:
+            data_attrs["tags"] = " ".join(processed)
+        # remove any individually flattened tag entries to avoid duplication
+        for k in list(data_attrs.keys()):
+            if k.startswith("tags."):
+                del data_attrs[k]
 
     for required_key, required_value in {
         "element_id": entity.get("id"),
@@ -448,6 +477,9 @@ def drawio(
 
     Args:
         entities_json: JSON array of entities. Expected keys per entity: id/element_id, type_name/type, name.
+            Any additional metadata (attributes, tags_json, custom fields) will be
+            flattened and embedded on the resulting `<object>`; tags dictionaries
+            yield a space-separated `tags` attribute for easy filtering in Draw.io.
         relationships_json: JSON array of relationships. Expected keys: source_element_id/source_id, target_element_id/target_id, type_name/type.
         title: Draw.io diagram tab title.
         explicit_after_mutation: Must be True when exporting immediately after a write action.

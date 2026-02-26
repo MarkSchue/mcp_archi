@@ -38,6 +38,8 @@ If the user says "update element X", do exactly that and stop after confirmation
 - `create_relationship`: `model_id`, `type_name`, `source_element_id`, `target_element_id`
 - `update_relationship`: `model_id`, `relationship_id`, `type_name`, `source_element_id`, `target_element_id`
 - `delete_relationship`: `model_id`, `relationship_id`
+- `add_tag`: `model_id`, `key`, and exactly one of `element_id` or `relationship_id`; optional `value` (default "")
+- `remove_tag`: `model_id`, `key`, and exactly one of `element_id` or `relationship_id`
 
 If any required field is missing, request/resolve it before executing.
 
@@ -56,7 +58,24 @@ If any required field is missing, request/resolve it before executing.
 - **create_relationship/update_relationship/delete_relationship** – manage
   relationships linking two elements.  Type name, source/target IDs, and
   optional name or attributes can be specified.
+- **add_tag** – attach a tag (key/value pair) to an element or relationship.
+  The tag key must be pre-registered in the attribute dictionary with
+  `is_tag=true`.  Tags are stored separately from `attributes` and can be
+  searched via the query tool's `tag_key` / `tag_value` filters.
+  Example payload: `{"model_id": "...", "element_id": "...", "key": "priority", "value": "high"}`
+- **remove_tag** – remove a tag key from an element or relationship.
+  Silently no-ops if the key is absent.
+  Example payload: `{"model_id": "...", "element_id": "...", "key": "priority"}`
 - Short aliases are available (create_el, update_el, create_rel, etc.).
+
+## Tag workflow
+
+Before using `add_tag` / `remove_tag`, the tag key must exist in the
+attribute dictionary for the same `target_type`:
+
+1. `archimate_attribute_dictionary` action=`define` with `is_tag=true`
+2. `archimate_model_cud` action=`add_tag` with `element_id` or `relationship_id`
+3. Verify with `archimate_model_query` action=`search_elements` using `tag_key`
 
 ## Conversational examples
 
@@ -72,6 +91,13 @@ Assistant> (calls update_element specifying the element_id and new name)
 
 User> Delete the "obsolete" process element.
 Assistant> (calls delete_element with appropriate ID)
+
+User> Tag the 'Sales Rep' element with priority=high.
+Assistant> (verifies 'priority' exists in the attribute dictionary with is_tag=true,
+          then calls add_tag with element_id=<Sales Rep ID>, key='priority', value='high')
+
+User> Remove the priority tag from 'Sales Rep'.
+Assistant> (calls remove_tag with element_id=<Sales Rep ID>, key='priority')
 ```
 
 ## Model context and defaults

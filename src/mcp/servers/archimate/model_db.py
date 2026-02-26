@@ -100,11 +100,22 @@ def init_model_db() -> None:
                 target_type TEXT NOT NULL CHECK(target_type IN ('element','relationship')),
                 key TEXT NOT NULL,
                 description TEXT NOT NULL DEFAULT '',
+                is_tag INTEGER NOT NULL DEFAULT 0,
                 PRIMARY KEY(model_id, target_type, key),
                 FOREIGN KEY(model_id) REFERENCES models(id) ON DELETE CASCADE
             )
             """
         )
+        # --- schema migrations for tables that may already exist ---
+        for migration in (
+            "ALTER TABLE model_attribute_definitions ADD COLUMN is_tag INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE model_elements ADD COLUMN tags_json TEXT NOT NULL DEFAULT '{}'",
+            "ALTER TABLE model_relationships ADD COLUMN tags_json TEXT NOT NULL DEFAULT '{}'",
+        ):
+            try:
+                cursor.execute(migration)
+            except Exception:
+                pass  # column already exists; SQLite does not support IF NOT EXISTS on ALTER
         cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS model_locks (
@@ -125,9 +136,12 @@ def _row_dicts(cursor) -> list[dict[str, Any]]:
     rows = []
     for row in cursor.fetchall():
         data = dict(zip(cols, row))
-        for json_key in ("attributes_json",):
+        for json_key in ("attributes_json", "tags_json"):
             if json_key in data and isinstance(data[json_key], str):
-                data[json_key.replace("_json", "")] = json.loads(data[json_key])
+                try:
+                    data[json_key.replace("_json", "")] = json.loads(data[json_key])
+                except json.JSONDecodeError:
+                    data[json_key.replace("_json", "")] = {}
                 del data[json_key]
         rows.append(data)
     return rows
@@ -326,8 +340,8 @@ def upsert_model_element(
         exists = cursor.fetchone() is not None
         cursor.execute(
             """
-            INSERT OR REPLACE INTO model_elements(model_id, id, type_name, name, attributes_json, valid_from, valid_to, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, COALESCE((SELECT created_at FROM model_elements WHERE model_id=? AND id=?), CURRENT_TIMESTAMP), CURRENT_TIMESTAMP)
+            INSERT OR REPLACE INTO model_elements(model_id, id, type_name, name, attributes_json, tags_json, valid_from, valid_to, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, COALESCE((SELECT tags_json FROM model_elements WHERE model_id=? AND id=?), '{}'), ?, ?, COALESCE((SELECT created_at FROM model_elements WHERE model_id=? AND id=?), CURRENT_TIMESTAMP), CURRENT_TIMESTAMP)
             """,
             (
                 model_id,
@@ -335,6 +349,8 @@ def upsert_model_element(
                 type_name,
                 name,
                 json.dumps(attributes or {}, ensure_ascii=False),
+                model_id,
+                element_id,
                 valid_from,
                 valid_to,
                 model_id,
@@ -442,8 +458,8 @@ def upsert_model_relationship(
         exists = cursor.fetchone() is not None
         cursor.execute(
             """
-            INSERT OR REPLACE INTO model_relationships(model_id, id, type_name, source_element_id, target_element_id, name, attributes_json, valid_from, valid_to, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE((SELECT created_at FROM model_relationships WHERE model_id=? AND id=?), CURRENT_TIMESTAMP), CURRENT_TIMESTAMP)
+            INSERT OR REPLACE INTO model_relationships(model_id, id, type_name, source_element_id, target_element_id, name, attributes_json, tags_json, valid_from, valid_to, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, COALESCE((SELECT tags_json FROM model_relationships WHERE model_id=? AND id=?), '{}'), ?, ?, COALESCE((SELECT created_at FROM model_relationships WHERE model_id=? AND id=?), CURRENT_TIMESTAMP), CURRENT_TIMESTAMP)
             """,
             (
                 model_id,
@@ -453,6 +469,8 @@ def upsert_model_relationship(
                 target_element_id,
                 name,
                 json.dumps(attributes or {}, ensure_ascii=False),
+                model_id,
+                relationship_id,
                 valid_from,
                 valid_to,
                 model_id,
@@ -1217,21 +1235,38 @@ def release_lock(model_id: str, owner: str | None = None, force: bool = False) -
 # attribute definition helpers (per-model dictionary)
 # ---------------------------------------------------------------------------
 
-def list_attribute_definitions(model_id: str, target_type: str) -> list[dict[str, str]]:
-    """Return attribute keys/descriptions for a given model and target_type.
+def list_attribute_definitions(model_id: str, target_type: str) -> list[dict]:
+    """Return attribute keys, descriptions, and is_tag flags for a given model and target_type.
     target_type must be 'element' or 'relationship'."""
     with get_connection() as connection:
         cursor = connection.cursor()
         cursor.execute(
-            "SELECT key, description FROM model_attribute_definitions "
+            "SELECT key, description, is_tag FROM model_attribute_definitions "
             "WHERE model_id = ? AND target_type = ?",
             (model_id, target_type),
         )
-        return [{"key": row[0], "description": row[1]} for row in cursor.fetchall()]
+        return [{"key": row[0], "description": row[1], "is_tag": bool(row[2])} for row in cursor.fetchall()]
 
 
-def define_attribute(model_id: str, target_type: str, key: str, description: str = "") -> None:
-    """Create or update an attribute definition for the given model."""
+def list_tag_definitions(model_id: str, target_type: str) -> list[dict]:
+    """Return only attribute definitions that are marked as tags (is_tag=1)."""
+    with get_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            "SELECT key, description FROM model_attribute_definitions "
+            "WHERE model_id = ? AND target_type = ? AND is_tag = 1",
+            (model_id, target_type),
+        )
+        return [{"key": row[0], "description": row[1], "is_tag": True} for row in cursor.fetchall()]
+
+
+def define_attribute(model_id: str, target_type: str, key: str, description: str = "", is_tag: bool = False) -> None:
+    """Create or update an attribute definition for the given model.
+
+    Set ``is_tag=True`` to mark the key as a tag, which enables the
+    ``add_tag`` / ``remove_tag`` CUD actions and the ``tag_key`` /
+    ``tag_value`` query filters to use it.
+    """
     if target_type not in ("element", "relationship"):
         raise ModelError("target_type must be 'element' or 'relationship'")
     with get_connection() as connection:
@@ -1239,10 +1274,10 @@ def define_attribute(model_id: str, target_type: str, key: str, description: str
         cursor.execute(
             """
             INSERT OR REPLACE INTO model_attribute_definitions
-            (model_id, target_type, key, description)
-            VALUES (?, ?, ?, ?)
+            (model_id, target_type, key, description, is_tag)
+            VALUES (?, ?, ?, ?, ?)
             """,
-            (model_id, target_type, key, description),
+            (model_id, target_type, key, description, 1 if is_tag else 0),
         )
         connection.commit()
 
@@ -1258,6 +1293,152 @@ def delete_attribute_definition(model_id: str, target_type: str, key: str) -> in
         )
         connection.commit()
         return int(cursor.rowcount)
+
+
+# ---------------------------------------------------------------------------
+# tag management helpers (element and relationship)
+# ---------------------------------------------------------------------------
+
+def _resolve_tag_key(connection, model_id: str, target_type: str, key: str) -> None:
+    """Raise ModelError if ``key`` is not defined with is_tag=1 in the dictionary."""
+    cursor = connection.cursor()
+    cursor.execute(
+        "SELECT 1 FROM model_attribute_definitions "
+        "WHERE model_id = ? AND target_type = ? AND key = ? AND is_tag = 1",
+        (model_id, target_type, key),
+    )
+    if cursor.fetchone() is None:
+        raise ModelError(
+            f"Tag key '{key}' is not defined for {target_type}s in model '{model_id}'. "
+            "Define it first with archimate_attribute_dictionary define + is_tag=true."
+        )
+
+
+def add_element_tag(
+    model_id: str,
+    element_id: str,
+    key: str,
+    value: str = "",
+    author: str = "system",
+    message: str = "Tag added",
+) -> dict[str, Any]:
+    """Add or update a tag on an element.  The key must exist in the attribute
+    dictionary with ``is_tag=True``.  Returns the updated tags dict."""
+    with get_connection() as connection:
+        _ensure_model_exists(connection, model_id)
+        _resolve_tag_key(connection, model_id, "element", key)
+        cursor = connection.cursor()
+        cursor.execute(
+            "SELECT tags_json FROM model_elements WHERE model_id = ? AND id = ?",
+            (model_id, element_id),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            raise ModelError(f"Element '{element_id}' not found in model '{model_id}'")
+        tags: dict = json.loads(row[0] or "{}")
+        tags[key] = value
+        cursor.execute(
+            "UPDATE model_elements SET tags_json = ?, updated_at = CURRENT_TIMESTAMP "
+            "WHERE model_id = ? AND id = ?",
+            (json.dumps(tags, ensure_ascii=False), model_id, element_id),
+        )
+        version = _create_version(connection, model_id, author, message)
+        connection.commit()
+        return {"status": "ok", "element_id": element_id, "tags": tags, "version": version}
+
+
+def remove_element_tag(
+    model_id: str,
+    element_id: str,
+    key: str,
+    author: str = "system",
+    message: str = "Tag removed",
+) -> dict[str, Any]:
+    """Remove a tag from an element.  No-ops silently if the key is absent."""
+    with get_connection() as connection:
+        _ensure_model_exists(connection, model_id)
+        cursor = connection.cursor()
+        cursor.execute(
+            "SELECT tags_json FROM model_elements WHERE model_id = ? AND id = ?",
+            (model_id, element_id),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            raise ModelError(f"Element '{element_id}' not found in model '{model_id}'")
+        tags: dict = json.loads(row[0] or "{}")
+        tags.pop(key, None)
+        cursor.execute(
+            "UPDATE model_elements SET tags_json = ?, updated_at = CURRENT_TIMESTAMP "
+            "WHERE model_id = ? AND id = ?",
+            (json.dumps(tags, ensure_ascii=False), model_id, element_id),
+        )
+        version = _create_version(connection, model_id, author, message)
+        connection.commit()
+        return {"status": "ok", "element_id": element_id, "tags": tags, "version": version}
+
+
+def add_relationship_tag(
+    model_id: str,
+    relationship_id: str,
+    key: str,
+    value: str = "",
+    author: str = "system",
+    message: str = "Tag added",
+) -> dict[str, Any]:
+    """Add or update a tag on a relationship.  The key must exist in the attribute
+    dictionary with ``is_tag=True``."""
+    with get_connection() as connection:
+        _ensure_model_exists(connection, model_id)
+        _resolve_tag_key(connection, model_id, "relationship", key)
+        cursor = connection.cursor()
+        cursor.execute(
+            "SELECT tags_json FROM model_relationships WHERE model_id = ? AND id = ?",
+            (model_id, relationship_id),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            raise ModelError(f"Relationship '{relationship_id}' not found in model '{model_id}'")
+        tags: dict = json.loads(row[0] or "{}")
+        tags[key] = value
+        cursor.execute(
+            "UPDATE model_relationships SET tags_json = ?, updated_at = CURRENT_TIMESTAMP "
+            "WHERE model_id = ? AND id = ?",
+            (json.dumps(tags, ensure_ascii=False), model_id, relationship_id),
+        )
+        version = _create_version(connection, model_id, author, message)
+        connection.commit()
+        return {"status": "ok", "relationship_id": relationship_id, "tags": tags, "version": version}
+
+
+def remove_relationship_tag(
+    model_id: str,
+    relationship_id: str,
+    key: str,
+    author: str = "system",
+    message: str = "Tag removed",
+) -> dict[str, Any]:
+    """Remove a tag from a relationship.  No-ops silently if the key is absent."""
+    with get_connection() as connection:
+        _ensure_model_exists(connection, model_id)
+        cursor = connection.cursor()
+        cursor.execute(
+            "SELECT tags_json FROM model_relationships WHERE model_id = ? AND id = ?",
+            (model_id, relationship_id),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            raise ModelError(f"Relationship '{relationship_id}' not found in model '{model_id}'")
+        tags: dict = json.loads(row[0] or "{}")
+        tags.pop(key, None)
+        cursor.execute(
+            "UPDATE model_relationships SET tags_json = ?, updated_at = CURRENT_TIMESTAMP "
+            "WHERE model_id = ? AND id = ?",
+            (json.dumps(tags, ensure_ascii=False), model_id, relationship_id),
+        )
+        version = _create_version(connection, model_id, author, message)
+        connection.commit()
+        return {"status": "ok", "relationship_id": relationship_id, "tags": tags, "version": version}
+
 
 
 def get_lock(model_id: str) -> dict[str, Any]:
