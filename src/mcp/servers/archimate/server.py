@@ -23,8 +23,8 @@ from .model_db import init_model_db
 VIEW_URI = "ui://selectable-table/view.html"
 MATRIX_VIEW_URI = "ui://selectable-matrix/view.html"
 
-# exports directory (hard-coded for workspace path)
-EXPORTS_DIR = Path("/home/markus/Workspace/mcp_archi/exports")
+# exports directory (resolved relative to workspace root, 4 levels above this file)
+EXPORTS_DIR = Path(__file__).resolve().parents[4] / "exports"
 
 _current_selection: list = []
 
@@ -112,7 +112,6 @@ from .tools.archimate_model_cud import tool as _t5  # noqa: E402, F401
 # ---------------------------------------------------------------------------
 # Selectable-table support (resources and selection state)
 # ---------------------------------------------------------------------------
-import json
 
 # state and constants now defined above in this module (see earlier block)
 

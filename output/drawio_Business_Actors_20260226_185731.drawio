@@ -1,17 +1,17 @@
-<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36" version="29.5.3">
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36" version="29.5.5">
   <diagram name="Business Actors" id="archi-diagram">
     <mxGraphModel dx="1360" dy="759" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <object label="%name%" placeholders="1" model_id="050202b8-00ea-4b1e-96cf-437cd518ffa2" data_id="024d6bc5-cfe3-4a9a-95d1-1b0c33d3f990" type_name="Business Actor" name="Erika Gruen" valid_from="2026-01-01" valid_to="2026-12-31" created_at="2026-02-22 17:23:03" updated_at="2026-02-26 16:22:42" tags="critical" element_id="024d6bc5-cfe3-4a9a-95d1-1b0c33d3f990" id="n1">
-          <mxCell parent="1" style="html=1;whiteSpace=wrap;placeholders=1;shape=mxgraph.archimate3.actor;appType=actor;archiType=square;" vertex="1">
-            <mxGeometry height="80" width="180" x="80" y="80" as="geometry" />
+          <mxCell parent="1" style="html=1;whiteSpace=wrap;placeholders=1;shape=mxgraph.archimate3.actor;appType=actor;archiType=square;spacingTop=0;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeWidth=2;" vertex="1">
+            <mxGeometry height="80" width="50" x="60" y="170" as="geometry" />
           </mxCell>
         </object>
         <object label="%name%" placeholders="1" model_id="050202b8-00ea-4b1e-96cf-437cd518ffa2" data_id="d1e76911-88ad-4c13-949e-4603b424f6b0" type_name="Business Actor" name="Max Mustermann" valid_from="2026-01-01" valid_to="2026-12-31" created_at="2026-02-21 16:55:52" updated_at="2026-02-23 10:49:31" element_id="d1e76911-88ad-4c13-949e-4603b424f6b0" id="n2">
           <mxCell parent="1" style="html=1;whiteSpace=wrap;placeholders=1;shape=mxgraph.archimate3.actor;appType=actor;archiType=square;" vertex="1">
-            <mxGeometry height="80" width="180" x="310" y="90" as="geometry" />
+            <mxGeometry height="80" width="180" x="340" y="190" as="geometry" />
           </mxCell>
         </object>
       </root>

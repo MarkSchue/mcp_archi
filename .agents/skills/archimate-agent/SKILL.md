@@ -6,7 +6,7 @@ license: Complete terms in LICENSE.txt
 
 This is the canonical policy skill for ArchiMate operations.
 The full canonical policy is maintained in
-`/home/markus/Workspace/mcp_archi/.github/agents/archimate architect.agent.md`.
+`.github/agents/archimate architect.agent.md` (relative to workspace root).
 
 Load and follow that file for:
 - strict prompt snippet

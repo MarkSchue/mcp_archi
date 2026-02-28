@@ -2,21 +2,25 @@
     "servers": {
         "export-csv": {
             "type": "stdio",
-            "command": "/home/markus/Workspace/mcp_archi/.venv/bin/python",
+            "command": "${workspaceFolder}/.venv/bin/python",
             "args": [
                 "-m",
                 "servers.export_csv"
             ],
-            "cwd": "/home/markus/Workspace/mcp_archi/src/mcp"
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src/mcp"
+            }
         },
         "archimate": {
             "type": "stdio",
-            "command": "/home/markus/Workspace/mcp_archi/.venv/bin/python",
+            "command": "${workspaceFolder}/.venv/bin/python",
             "args": [
                 "-m",
                 "servers.archimate"
             ],
-            "cwd": "/home/markus/Workspace/mcp_archi/src/mcp"
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src/mcp"
+            }
         }
     }
 }
